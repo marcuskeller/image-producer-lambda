@@ -1,1 +1,1 @@
-rootProject.name = "lambda-producer"
+rootProject.name = "image-producer-lambda"
