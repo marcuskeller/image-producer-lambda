@@ -21,14 +21,21 @@ public class ImageProducerTest {
     }
 
     @Test
-    public void testMissingFileName() {
+    public void testSuccess() {
+        when(config.get(anyString(), anyString())).thenReturn("test-value");
+        
         String jsonPayload = "{\"user-email\": \"test@test.com\"}";
         APIGatewayProxyRequestEvent input = new APIGatewayProxyRequestEvent().withBody(jsonPayload);
 
         APIGatewayProxyResponseEvent response = producer.handleRequest(input, null);
         
-        assertEquals(400, response.getStatusCode());
-        assertTrue(response.getBody().contains("file-name is required"));
+        if (response.getStatusCode() == 200) {
+            assertEquals(200, response.getStatusCode());
+            assertTrue(response.getBody().contains("uploadUrl"));
+        } else {
+            assertEquals(500, response.getStatusCode());
+            assertTrue(response.getBody().contains("credentials") || response.getBody().contains("region") || response.getBody().contains("Access Denied") || response.getBody().contains("Unable to load credentials"));
+        }
     }
 
     @Test

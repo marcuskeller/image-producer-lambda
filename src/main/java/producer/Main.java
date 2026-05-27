@@ -9,7 +9,7 @@ public class Main {
 
         ImageProducer producer = new ImageProducer();
 
-        String jsonPayload = "{\"file-name\": \"test-image.jpg\", \"user-email\": \"dev@test.com\"}";
+        String jsonPayload = "{\"user-email\": \"dev@test.com\"}";
         
         APIGatewayProxyRequestEvent mockRequest = new APIGatewayProxyRequestEvent()
                 .withBody(jsonPayload);

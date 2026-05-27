@@ -15,6 +15,7 @@ import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignReques
 import java.time.Duration;
 import java.util.Collections;
 import java.util.Map;
+import java.util.UUID;
 
 public class ImageProducer implements RequestHandler<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent> {
 
@@ -33,16 +34,18 @@ public class ImageProducer implements RequestHandler<APIGatewayProxyRequestEvent
     public APIGatewayProxyResponseEvent handleRequest(final APIGatewayProxyRequestEvent input, final Context context) {
         try {
             Map<String, String> data = parseBody(input);
-            String fileName = data.get("file-name");
             String userEmail = data.get("user-email");
 
-            if (fileName == null || fileName.isEmpty()) {
-                return buildResponse(400, "{\"error\": \"file-name is required\"}");
+            String bucketName = config.get("S3_BUCKET_NAME", "S3_BUCKET_NAME");
+            if (bucketName == null || bucketName.isEmpty()) {
+                throw new IllegalStateException("Missing required configuration: S3_BUCKET_NAME");
             }
 
-            String bucketName = config.get("S3_BUCKET_NAME", "S3_BUCKET_NAME");
             String regionName = config.get("APP_REGION", "AWS_REGION");
             Region region = Region.of(regionName != null ? regionName : "us-east-1");
+
+            String uuid = UUID.randomUUID().toString();
+            String s3Key = uuid + "-original";
 
             S3Presigner presigner = S3Presigner.builder()
                     .region(region)
@@ -50,8 +53,8 @@ public class ImageProducer implements RequestHandler<APIGatewayProxyRequestEvent
 
             PutObjectRequest objectRequest = PutObjectRequest.builder()
                     .bucket(bucketName)
-                    .key(fileName)
-                    .metadata(Map.of("user-email", userEmail != null ? userEmail : "unknown"))
+                    .key(s3Key)
+                    .metadata(Map.of("user-email", userEmail))
                     .build();
 
             PutObjectPresignRequest presignRequest = PutObjectPresignRequest.builder()
@@ -70,7 +73,7 @@ public class ImageProducer implements RequestHandler<APIGatewayProxyRequestEvent
                     .withBody("{\"uploadUrl\": \"" + generatedUrl + "\"}");
 
         } catch (Exception e) {
-            return buildResponse(500, "{\"error\": \"" + e.getMessage() + "\"}");
+            return buildResponse("{\"error\": \"" + e.getMessage() + "\"}");
         }
     }
 
@@ -81,9 +84,9 @@ public class ImageProducer implements RequestHandler<APIGatewayProxyRequestEvent
         return objectMapper.readValue(input.getBody(), new TypeReference<>() {});
     }
 
-    private APIGatewayProxyResponseEvent buildResponse(int statusCode, String body) {
+    private APIGatewayProxyResponseEvent buildResponse(String body) {
         return new APIGatewayProxyResponseEvent()
-                .withStatusCode(statusCode)
+                .withStatusCode(500)
                 .withHeaders(Collections.singletonMap("Content-Type", "application/json"))
                 .withBody(body);
     }

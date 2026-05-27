@@ -11,9 +11,15 @@ public class ConfigurationService {
 
     public String get(String key, String fallbackEnvKey) {
         String value = dotenv.get(key);
-        if (value != null) {
+        if (value != null && !value.isEmpty()) {
             return value;
         }
-        return System.getenv(fallbackEnvKey != null ? fallbackEnvKey : key);
+
+        value = System.getenv(fallbackEnvKey != null ? fallbackEnvKey : key);
+        if (value != null && !value.isEmpty()) {
+            return value;
+        }
+
+        return null;
     }
-}
+    }
