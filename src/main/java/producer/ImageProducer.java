@@ -13,7 +13,6 @@ import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequ
 import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
 
 import java.time.Duration;
-import java.util.Collections;
 import java.util.Map;
 import java.util.UUID;
 
@@ -21,6 +20,12 @@ public class ImageProducer implements RequestHandler<APIGatewayProxyRequestEvent
 
     private final ConfigurationService config;
     private final ObjectMapper objectMapper = new ObjectMapper();
+    private final Map<String, String> corsHeaders = Map.of(
+            "Access-Control-Allow-Origin", "*",
+            "Access-Control-Allow-Methods", "POST, OPTIONS, PUT",
+            "Access-Control-Allow-Headers", "Content-Type, x-amz-meta-user-email",
+            "Content-Type", "application/json"
+    );
 
     public ImageProducer() {
         this.config = new ConfigurationService();
@@ -33,6 +38,12 @@ public class ImageProducer implements RequestHandler<APIGatewayProxyRequestEvent
     @Override
     public APIGatewayProxyResponseEvent handleRequest(final APIGatewayProxyRequestEvent input, final Context context) {
         try {
+            if ("OPTIONS".equalsIgnoreCase(input.getHttpMethod())) {
+                return new APIGatewayProxyResponseEvent()
+                        .withStatusCode(200)
+                        .withHeaders(corsHeaders);
+            }
+
             Map<String, String> data = parseBody(input);
             String userEmail = data.get("user-email");
 
@@ -69,7 +80,7 @@ public class ImageProducer implements RequestHandler<APIGatewayProxyRequestEvent
 
             return new APIGatewayProxyResponseEvent()
                     .withStatusCode(200)
-                    .withHeaders(Collections.singletonMap("Content-Type", "application/json"))
+                    .withHeaders(corsHeaders)
                     .withBody("{\"uploadUrl\": \"" + generatedUrl + "\"}");
 
         } catch (Exception e) {
@@ -87,7 +98,7 @@ public class ImageProducer implements RequestHandler<APIGatewayProxyRequestEvent
     private APIGatewayProxyResponseEvent buildResponse(String body) {
         return new APIGatewayProxyResponseEvent()
                 .withStatusCode(500)
-                .withHeaders(Collections.singletonMap("Content-Type", "application/json"))
+                .withHeaders((corsHeaders))
                 .withBody(body);
     }
 }
